@@ -26,12 +26,10 @@ jobs:
           apt install -y git build-essential curl lsb-release sudo apt-utils dialog software-properties-common
       - name: Install nodejs16 for Github actions
         run: |
-            curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-            apt install -y nodejs
-            find / -name "node*"
-            ls -la /__e/node20/bin/
-            mv /__e/node20/bin/node /__e/node20/bin/node.old
-            ln -s /usr/bin/node /__e/node20/bin/node
+          apt remove --purge nodejs npm
+          curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
+          apt install -y nodejs
+          update-alternatives --install /usr/bin/node node /usr/bin/node 100
       - name: Install gcc-10 for C++20 support
         run: |
             add-apt-repository -y ppa:ubuntu-toolchain-r/test && apt update
