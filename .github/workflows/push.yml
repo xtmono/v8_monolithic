@@ -28,6 +28,8 @@ jobs:
         run: |
             curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
             apt install -y nodejs
+            cd $RUNNER_HOME/actions-runner/externals
+            mv node20 node20.bak && ln -s node16 node20
       - name: Install gcc-10 for C++20 support
         run: |
             add-apt-repository -y ppa:ubuntu-toolchain-r/test && apt update
@@ -37,7 +39,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         env:
-          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
           ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
       - name: Setup v8 build tools
         run: |
@@ -60,7 +62,7 @@ jobs:
       - name: Upload headers
         uses: actions/upload-artifact@v4
         env:
-          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
           ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
         with:
           path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-include.tar.gz
@@ -71,7 +73,7 @@ jobs:
       - name: Upload source
         uses: actions/upload-artifact@v4
         env:
-          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
           ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
         with:
           path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-src.tar.gz
@@ -138,7 +140,7 @@ jobs:
       - name: Upload library
         uses: actions/upload-artifact@v4
         env:
-          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
           ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
         with:
           path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz
@@ -151,7 +153,7 @@ jobs:
       - name: Upload generated source
         uses: actions/upload-artifact@v4
         env:
-          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
           ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
         with:
           path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz
