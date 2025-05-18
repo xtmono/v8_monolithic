@@ -24,6 +24,8 @@ jobs:
         run: |
           apt update && apt -y upgrade
           apt install -y git build-essential curl lsb-release sudo apt-utils dialog software-properties-common
+          curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
+          apt install -y nodejs
           add-apt-repository -y ppa:ubuntu-toolchain-r/test && apt update
           apt install -y gcc-10 g++-10
           update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 60 --slave /usr/bin/g++ g++ /usr/bin/g++-10
