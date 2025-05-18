@@ -23,13 +23,13 @@ jobs:
       - name: Setup nodejs16 for Github actions
         run: |
           find / -name "actions-runner"
-          ls -la /home/runner/actions-runner
-          cat /home/runner/actions-runner/.env
-          cat /home/runner/actions-runner/env.sh
-          echo "ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION=node16" >> /home/runner/actions-runner/.env
-          echo "ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION=node16" >> /home/runner/actions-runner/.env
-          echo "ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION=node16" >> /home/runner/actions-runner/env.sh
-          echo "ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION=node16" >> /home/runner/actions-runner/env.sh
+          # ls -la /home/runner/actions-runner
+          # cat /home/runner/actions-runner/.env
+          # cat /home/runner/actions-runner/env.sh
+          # echo "ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION=node16" >> /home/runner/actions-runner/.env
+          # echo "ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION=node16" >> /home/runner/actions-runner/.env
+          # echo "ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION=node16" >> /home/runner/actions-runner/env.sh
+          # echo "ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION=node16" >> /home/runner/actions-runner/env.sh
 
       - name: Checkout code
         uses: actions/checkout@v3
