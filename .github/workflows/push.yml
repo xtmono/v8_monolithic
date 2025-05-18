@@ -26,10 +26,9 @@ jobs:
           apt install -y git build-essential curl lsb-release sudo apt-utils dialog software-properties-common
       - name: Install nodejs16 for Github actions
         run: |
-          apt remove --purge nodejs npm
           curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
           apt install -y nodejs
-          update-alternatives --install /usr/bin/node node /usr/bin/node-16 10
+          path
       - name: Install gcc-10 for C++20 support
         run: |
             add-apt-repository -y ppa:ubuntu-toolchain-r/test && apt update
@@ -37,7 +36,7 @@ jobs:
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 60 --slave /usr/bin/g++ g++ /usr/bin/g++-10
 
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Setup v8 build tools
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
@@ -56,19 +55,19 @@ jobs:
       - name: Compress headers
         run: |
           tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-include.tar.gz v8/include
-      - name: Upload headers
-        uses: actions/upload-artifact@v4
-        with:
-          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-include.tar.gz
-          name: v8-${V8_VERSION}-include.tar.gz
+      # - name: Upload headers
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-include.tar.gz
+      #     name: v8-${V8_VERSION}-include.tar.gz
       - name: Compress source
         run: |
           tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-src.tar.gz v8/src
-      - name: Upload source
-        uses: actions/upload-artifact@v4
-        with:
-          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-src.tar.gz
-          name: v8-${V8_VERSION}-src.tar.gz
+      # - name: Upload source
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-src.tar.gz
+      #     name: v8-${V8_VERSION}-src.tar.gz
 
       # - name: Restore CCache
       #   uses: actions/cache@v4
@@ -128,18 +127,18 @@ jobs:
           tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz \
           --transform="s|.*/v8/out\.gn/${{ matrix.platform }}\.release/obj|v8|" \
           ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/obj/libv8_monolith.a
-      - name: Upload library
-        uses: actions/upload-artifact@v4
-        with:
-          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz
-          name: v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz
+      # - name: Upload library
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz
+      #     name: v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz
       - name: Compress generated source
         run: |
           tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz \
           --transform="s|.*/v8/out\.gn/${{ matrix.platform }}\.release|v8|" \
           ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/gen
-      - name: Upload generated source
-        uses: actions/upload-artifact@v4
-        with:
-          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz
-          name: v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz
+      # - name: Upload generated source
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz
+      #     name: v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz
