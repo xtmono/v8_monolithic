@@ -19,9 +19,6 @@ jobs:
       fail-fast: false
       matrix:
         platform: [x64]
-    env:
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-      ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
     steps:
       - name: Install dependencies for container
         run: |
@@ -39,6 +36,9 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v3
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
       - name: Setup v8 build tools
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
@@ -59,6 +59,9 @@ jobs:
           tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-include.tar.gz v8/include
       - name: Upload headers
         uses: actions/upload-artifact@v4
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
         with:
           path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-include.tar.gz
           name: v8-${V8_VERSION}-include.tar.gz
@@ -67,6 +70,9 @@ jobs:
           tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-src.tar.gz v8/src
       - name: Upload source
         uses: actions/upload-artifact@v4
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
         with:
           path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-src.tar.gz
           name: v8-${V8_VERSION}-src.tar.gz
@@ -131,6 +137,9 @@ jobs:
           ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/obj/libv8_monolith.a
       - name: Upload library
         uses: actions/upload-artifact@v4
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
         with:
           path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz
           name: v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz
@@ -141,6 +150,9 @@ jobs:
           ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/gen
       - name: Upload generated source
         uses: actions/upload-artifact@v4
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
         with:
           path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz
           name: v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz
