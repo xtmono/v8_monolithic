@@ -3,8 +3,6 @@ on: [push]
 
 env:
   V8_VERSION: "12.9.203"
-  ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
-  ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
 
 defaults:
   run:
@@ -30,9 +28,10 @@ jobs:
         run: |
             curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
             apt install -y nodejs
-            ls -la __e/node20/bin/
-            mv __e/node20/bin/node __e/node20/bin/node.old
-            ln -s /usr/bin/node __e/node20/bin/node
+            find / -name "node*"
+            ls -la /__e/node20/bin/
+            mv /__e/node20/bin/node /__e/node20/bin/node.old
+            ln -s /usr/bin/node /__e/node20/bin/node
       - name: Install gcc-10 for C++20 support
         run: |
             add-apt-repository -y ppa:ubuntu-toolchain-r/test && apt update
