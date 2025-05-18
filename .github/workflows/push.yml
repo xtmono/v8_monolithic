@@ -1,0 +1,137 @@
+name: build when push
+on: [push]
+
+env:
+  V8_VERSION: "12.9.203"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-linux-x64:
+#    if: ${{ false }}  # disable
+    name: linux
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64]
+    steps:
+      - name: Install dependencies for container
+        run: |
+          apt update && apt -y upgrade
+          apt install -y git build-essential curl lsb-release sudo apt-utils dialog software-properties-common
+          add-apt-repository -y ppa:ubuntu-toolchain-r/test && apt update
+          apt install -y gcc-10 g++-10
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 60 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup v8 build tools
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          sed -i 's/@functools\.lru_cache\b/@functools.lru_cache(maxsize=128)/g' depot_tools/gclient_paths.py
+          export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
+          gclient
+          fetch v8
+      - name: Fetch tagged version
+        run: |
+          export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
+          cd ${GITHUB_WORKSPACE}/v8
+          git checkout tags/${V8_VERSION}
+          gclient sync
+          DEBIAN_FRONTEND=noninteractive ./build/install-build-deps.sh --unsupported
+          mkdir -p out.gn/${{ matrix.platform }}.release/
+      - name: Compress headers
+        run: |
+          tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-include.tar.gz v8/include
+      - name: Upload headers
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-include.tar.gz
+          name: v8-${V8_VERSION}-include.tar.gz
+      - name: Compress source
+        run: |
+          tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-src.tar.gz v8/src
+      - name: Upload source
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-src.tar.gz
+          name: v8-${V8_VERSION}-src.tar.gz
+
+      # - name: Restore CCache
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: .ccache
+      #     key: ${{ runner.os }}-${{ matrix.platform }}:libv8:ccache:${{ github.run_number }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-${{ matrix.platform }}:libv8:ccache:
+      # - name: Setup Build Tools
+      #   shell: bash
+      #   run: |
+      #     sudo apt update
+      #     sudo apt install -yq ccache
+      #     sudo update-ccache-symlinks
+
+      #     echo "/usr/lib/ccache" >> "$GITHUB_PATH"
+
+      #     ccacheDir="${GITHUB_WORKSPACE}/.ccache"
+      #     test -d "$ccacheDir" || mkdir "$ccacheDir"
+
+      #     echo "CCACHE_DIR=$ccacheDir" >> "$GITHUB_ENV"
+      #     echo "CC_WRAPPER=ccache" >> "$GITHUB_ENV"
+      # - name: Restore V8 Cache
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       v8
+      #       .gclient_entries
+      #       .gclient_previous_sync_commits
+      #       .cipd
+      #     key: ${{ runner.os }}-${{ matrix.platform }}:libv8:v8:${{ hashFiles('**/VERSION') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-${{ matrix.platform }}:libv8:v8:
+
+      - name: Copy build args
+        run: |
+          cp ${GITHUB_WORKSPACE}/args.linux.gn ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/args.gn
+      - name: Set platform in build args
+        uses: iamazeem/substitute-action@v1
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          CC_WRAPPER: ${CC_WRAPPER}
+        with:
+          input-files: ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/args.gn
+      - name: Verify substitution
+        run: |
+          cat ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/args.gn
+      - name: Build library
+        run: |
+          export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
+          cd ${GITHUB_WORKSPACE}/v8
+          gn gen out.gn/${{ matrix.platform }}.release
+          ninja -j $(($(nproc)+2)) v8_monolith -C out.gn/${{ matrix.platform }}.release/
+          gn args --list out.gn/${{ matrix.platform }}.release
+      - name: Compress library
+        run: |
+          tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz \
+          --transform="s|.*/v8/out\.gn/${{ matrix.platform }}\.release/obj|v8|" \
+          ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/obj/libv8_monolith.a
+      - name: Upload library
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz
+          name: v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz
+      - name: Compress generated source
+        run: |
+          tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz \
+          --transform="s|.*/v8/out\.gn/${{ matrix.platform }}\.release|v8|" \
+          ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/gen
+      - name: Upload generated source
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz
+          name: v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz
