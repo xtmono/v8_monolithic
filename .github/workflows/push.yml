@@ -30,8 +30,9 @@ jobs:
         run: |
             curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
             apt install -y nodejs
-            which node
-            which nodejs
+            ls -la __e/node20/bin/
+            mv __e/node20/bin/node __e/node20/bin/node.old
+            ln -s /usr/bin/node __e/node20/bin/node
       - name: Install gcc-10 for C++20 support
         run: |
             add-apt-repository -y ppa:ubuntu-toolchain-r/test && apt update
