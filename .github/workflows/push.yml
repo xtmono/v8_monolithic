@@ -24,7 +24,7 @@ jobs:
         run: |
           apt-get update && apt-get -y upgrade
           apt-mark hold snapd snapcraft
-          apt-get install -y git python3 python2 build-essential curl lsb-release sudo dialog apt-utils
+          apt-get install -y git python3 python2 build-essential ninja-build curl lsb-release sudo dialog apt-utils
           update-alternatives --install /usr/bin/python python /usr/bin/python2 60
       - name: Checkout code
         uses: actions/checkout@v3
