@@ -31,11 +31,10 @@ jobs:
       - name: Setup depot_tools
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-          # echo 'PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"' >> "$GITHUB_ENV"
+          echo "PATH=${GITHUB_WORKSPACE}/depot_tools:${PATH}" >> "$GITHUB_ENV"
       - name: Fetch tagged version
         run: |
-          export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
-          mkdir -p ${GITHUB_WORKSPACE}/v8
+          # export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
           gclient
           fetch v8
           cd ${GITHUB_WORKSPACE}/v8
@@ -46,10 +45,10 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
           TZ: Etc/UTC
         run: |
-          export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
+          # export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
           # export DEBIAN_FRONTEND=noninteractive
           # export TZ=Etc/UTC
-          ./build/install-build-deps.sh
+          ${GITHUB_WORKSPACE}/v8/build/install-build-deps.sh
       - name: Compress headers
         run: |
           tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-include.tar.gz v8/include
@@ -116,7 +115,7 @@ jobs:
           cat ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/args.gn
       - name: Build library
         run: |
-          export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
+          # export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
           cd ${GITHUB_WORKSPACE}/v8
           gn gen out.gn/${{ matrix.platform }}.release
           ninja -j $(($(nproc)+2)) v8_monolith -C out.gn/${{ matrix.platform }}.release/
