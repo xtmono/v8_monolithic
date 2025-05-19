@@ -22,9 +22,9 @@ jobs:
     steps:
       - name: Install dependencies for container
         run: |
-          apt update && apt -y upgrade
+          apt-get update && apt-get -y upgrade
           apt-mark hold snapd snapcraft
-          apt install -y git python3 python2 curl lsb-release sudo dialog apt-utils
+          apt-get install -y git python3 python2 build-essential curl lsb-release sudo dialog apt-utils
           update-alternatives --install /usr/bin/python python /usr/bin/python2 60
       - name: Checkout code
         uses: actions/checkout@v3
@@ -34,7 +34,6 @@ jobs:
           echo "PATH=${GITHUB_WORKSPACE}/depot_tools:${PATH}" >> "$GITHUB_ENV"
       - name: Fetch tagged version
         run: |
-          # export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
           gclient
           fetch v8
           cd ${GITHUB_WORKSPACE}/v8
@@ -45,7 +44,6 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
           TZ: Etc/UTC
         run: |
-          # export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
           # export DEBIAN_FRONTEND=noninteractive
           # export TZ=Etc/UTC
           ${GITHUB_WORKSPACE}/v8/build/install-build-deps.sh
@@ -76,8 +74,8 @@ jobs:
       # - name: Setup Build Tools
       #   shell: bash
       #   run: |
-      #     sudo apt update
-      #     sudo apt install -yq ccache
+      #     sudo apt-get update
+      #     sudo apt-get install -yq ccache
       #     sudo update-ccache-symlinks
 
       #     echo "/usr/lib/ccache" >> "$GITHUB_PATH"
@@ -115,7 +113,6 @@ jobs:
           cat ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/args.gn
       - name: Build library
         run: |
-          # export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"
           cd ${GITHUB_WORKSPACE}/v8
           gn gen out.gn/${{ matrix.platform }}.release
           ninja -j $(($(nproc)+2)) v8_monolith -C out.gn/${{ matrix.platform }}.release/
