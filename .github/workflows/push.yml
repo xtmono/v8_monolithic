@@ -112,7 +112,7 @@ jobs:
       - name: Copy build args
         run: |
           mkdir -p ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}
-          envsubst < ${GITHUB_WORKSPACE}/args.${OS}.${ARCH}.gn > ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
+          envsubst < ${GITHUB_WORKSPACE}/args.${OS}.gn > ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
       - name: Verify build args
         run: |
           cat ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
