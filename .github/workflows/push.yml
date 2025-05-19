@@ -43,9 +43,15 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
           TZ: Etc/UTC
         run: |
-          # export DEBIAN_FRONTEND=noninteractive
-          # export TZ=Etc/UTC
-          apt-mark hold snapd snapcraft
+          tee /etc/apt/preferences.d/nosnap.pref > /dev/null <<EOF
+          Package: snapd
+          Pin: release a=*
+          Pin-Priority: -10
+
+          Package: snapcraft
+          Pin: release a=*
+          Pin-Priority: -10
+          EOF
           ${GITHUB_WORKSPACE}/v8/build/install-build-deps.sh
       - name: Compress headers
         run: |
