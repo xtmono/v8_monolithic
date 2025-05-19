@@ -47,7 +47,6 @@ jobs:
       - name: Install build dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
-          TZ: Etc/UTC
         run: |
           tee /etc/apt/preferences.d/nosnap.pref > /dev/null <<EOF
           Package: snapd
@@ -58,6 +57,7 @@ jobs:
           Pin: release a=*
           Pin-Priority: -10
           EOF
+          echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections
           ${GITHUB_WORKSPACE}/v8/build/install-build-deps.sh
       - name: Compress headers
         run: |
