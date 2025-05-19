@@ -60,6 +60,11 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           echo "tzdata tzdata/Areas select Etc" | debconf-set-selections
           echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections
+          apt-get install -y tzdata
+          ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
+          echo "Etc/UTC" | tee /etc/timezone
+          dpkg-reconfigure --frontend noninteractive tzdata
+          apt-get install -y tzdata
           ${GITHUB_WORKSPACE}/v8/build/install-build-deps.sh
       - name: Compress headers
         run: |
