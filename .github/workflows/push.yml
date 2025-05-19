@@ -18,8 +18,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [x64]
+        platform: [linux.x64.debug, linux.x64.release]
     steps:
+      - name: Platform env
+        run: |
+          echo "OS=$(echo ${{ matrix.platform }} | cut -d'.' -f1)" >> "$GITHUB_ENV"
+          echo "ARCH=$(echo ${{ matrix.platform }} | cut -d'.' -f2)" >> "$GITHUB_ENV"
+          echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | cut -d'.' -f3)" >> "$GITHUB_ENV"
+          echo "IS_DEBUG=$([ "$BUILD_TYPE" = "debug" ] && echo true || echo false)" >> "$GITHUB_ENV"
       - name: Install dependencies for container
         run: |
           apt-get update && apt-get -y upgrade
@@ -105,41 +111,24 @@ jobs:
 
       - name: Copy build args
         run: |
-          mkdir -p ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/
-          cp ${GITHUB_WORKSPACE}/args.linux.gn ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/args.gn
-      - name: Set platform in build args
-        uses: iamazeem/substitute-action@v1
-        env:
-          PLATFORM: ${{ matrix.platform }}
-          CC_WRAPPER: ${CC_WRAPPER}
-        with:
-          input-files: ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/args.gn
-      - name: Verify substitution
+          mkdir -p ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}
+          envsubst < ${GITHUB_WORKSPACE}/args.${OS}.${ARCH}.gn > ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
+      - name: Verify build args
         run: |
-          cat ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/args.gn
+          cat ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
       - name: Build library
         run: |
           cd ${GITHUB_WORKSPACE}/v8
-          gn gen out.gn/${{ matrix.platform }}.release
-          ninja -j $(($(nproc)+2)) v8_monolith -C out.gn/${{ matrix.platform }}.release/
-          gn args --list out.gn/${{ matrix.platform }}.release
+          gn gen out.gn/${ARCH}.${BUILD_TYPE}
+          ninja -j $(($(nproc)+2)) v8_monolith -C out.gn/${ARCH}.${BUILD_TYPE}/
+          gn args --list out.gn/${ARCH}.${BUILD_TYPE}
       - name: Compress library
         run: |
-          tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz \
-          --transform="s|.*/v8/out\.gn/${{ matrix.platform }}\.release/obj|v8|" \
-          ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/obj/libv8_monolith.a
+          tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_${OS}-${ARCH}-${BUILD_TYPE}.tar.gz \
+          --transform="s|.*/v8/out\.gn/${ARCH}\.${BUILD_TYPE}/obj|v8|" \
+          ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/libv8_monolith.a
       - name: Upload library
         uses: actions/upload-artifact@v4
         with:
-          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz
-          name: v8-${V8_VERSION}-lib_linux-${{ matrix.platform }}.tar.gz
-      - name: Compress generated source
-        run: |
-          tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz \
-          --transform="s|.*/v8/out\.gn/${{ matrix.platform }}\.release|v8|" \
-          ${GITHUB_WORKSPACE}/v8/out.gn/${{ matrix.platform }}.release/gen
-      - name: Upload generated source
-        uses: actions/upload-artifact@v4
-        with:
-          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz
-          name: v8-${V8_VERSION}-gen_linux-${{ matrix.platform }}.tar.gz
+          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_${OS}-${ARCH}-${BUILD_TYPE}.tar.gz
+          name: v8-${V8_VERSION}-lib_${OS}-${ARCH}-${BUILD_TYPE}.tar.gz
