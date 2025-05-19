@@ -31,7 +31,7 @@ jobs:
       - name: Setup depot_tools
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-          echo 'export PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"' >> "$GITHUB_ENV"
+          echo 'PATH="${GITHUB_WORKSPACE}/depot_tools:${PATH}"' >> "$GITHUB_ENV"
       - name: Fetch tagged version
         run: |
           gclient
