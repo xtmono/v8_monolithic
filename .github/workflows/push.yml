@@ -23,7 +23,6 @@ jobs:
       - name: Install dependencies for container
         run: |
           apt-get update && apt-get -y upgrade
-          apt-mark hold snapd snapcraft
           apt-get install -y git python3 python2 build-essential ninja-build curl lsb-release sudo dialog apt-utils
           update-alternatives --install /usr/bin/python python /usr/bin/python2 60
       - name: Checkout code
@@ -46,6 +45,7 @@ jobs:
         run: |
           # export DEBIAN_FRONTEND=noninteractive
           # export TZ=Etc/UTC
+          apt-mark hold snapd snapcraft
           ${GITHUB_WORKSPACE}/v8/build/install-build-deps.sh
       - name: Compress headers
         run: |
