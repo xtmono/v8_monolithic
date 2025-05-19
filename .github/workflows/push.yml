@@ -57,6 +57,7 @@ jobs:
           Pin: release a=*
           Pin-Priority: -10
           EOF
+          export DEBIAN_FRONTEND=noninteractive
           echo "tzdata tzdata/Areas select Etc" | debconf-set-selections
           echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections
           ${GITHUB_WORKSPACE}/v8/build/install-build-deps.sh
