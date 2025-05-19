@@ -27,9 +27,26 @@ jobs:
           echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | cut -d'.' -f3)" >> "$GITHUB_ENV"
           echo "IS_DEBUG=$([ "$BUILD_TYPE" = "debug" ] && echo true || echo false)" >> "$GITHUB_ENV"
       - name: Install dependencies for container
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
+          tee /etc/apt/preferences.d/nosnap.pref > /dev/null <<EOF
+          Package: snapd
+          Pin: release a=*
+          Pin-Priority: -10
+
+          Package: snapcraft
+          Pin: release a=*
+          Pin-Priority: -10
+          EOF
+          echo "tzdata tzdata/Areas select Etc" | debconf-set-selections
+          echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections
           apt-get update && apt-get -y upgrade
-          apt-get install -y git python3 python2 build-essential ninja-build curl lsb-release sudo dialog apt-utils
+          apt-get install -y git python3 python2 build-essential ninja-build curl lsb-release sudo dialog apt-utils tzdata
+          # ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
+          # echo "Etc/UTC" | tee /etc/timezone
+          # dpkg-reconfigure --frontend noninteractive tzdata
+          # apt-get install -y tzdata
           update-alternatives --install /usr/bin/python python /usr/bin/python2 60
       - name: Checkout code
         uses: actions/checkout@v3
@@ -48,23 +65,6 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          tee /etc/apt/preferences.d/nosnap.pref > /dev/null <<EOF
-          Package: snapd
-          Pin: release a=*
-          Pin-Priority: -10
-
-          Package: snapcraft
-          Pin: release a=*
-          Pin-Priority: -10
-          EOF
-          export DEBIAN_FRONTEND=noninteractive
-          echo "tzdata tzdata/Areas select Etc" | debconf-set-selections
-          echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections
-          apt-get install -y tzdata
-          ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
-          echo "Etc/UTC" | tee /etc/timezone
-          dpkg-reconfigure --frontend noninteractive tzdata
-          apt-get install -y tzdata
           ${GITHUB_WORKSPACE}/v8/build/install-build-deps.sh
       - name: Compress headers
         run: |
