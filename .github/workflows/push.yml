@@ -30,10 +30,8 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          echo "Package: snapd\nPin: release a=*\nPin-Priority: -10" > /etc/apt/preferences.d/nosnap.pref
-          echo "Package: snapcraft\nPin: release a=*\nPin-Priority: -10" >> /etc/apt/preferences.d/nosnap.pref
-          ls -la /etc/apt/preferences.d/
-          cat /etc/apt/preferences.d/*
+          echo -e "Package: snapd\nPin: release a=*\nPin-Priority: -10\n" >> /etc/apt/preferences.d/nosnap.pref
+          echo -e "Package: snapcraft\nPin: release a=*\nPin-Priority: -10\n" >> /etc/apt/preferences.d/nosnap.pref
           # echo "tzdata tzdata/Areas select Etc" | debconf-set-selections
           # echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections
           apt-get update && apt-get -y upgrade
