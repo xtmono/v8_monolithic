@@ -22,7 +22,6 @@ jobs:
     steps:
       - name: Platform env
         run: |
-          echo "NOW=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
           echo "OS=$(echo ${{ matrix.platform }} | cut -d'-' -f1)" >> $GITHUB_ENV
           echo "ARCH=$(echo ${{ matrix.platform }} | cut -d'-' -f2)" >> $GITHUB_ENV
           echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | cut -d'-' -f3)" >> $GITHUB_ENV
@@ -64,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-include.tar.gz
-          name: v8-${{ env.V8_VERSION }}-include_${{ env.NOW }}.tar.gz
+          name: v8-${{ env.V8_VERSION }}-include-${{ github.sha }}.tar.gz
       - name: Compress sources
         run: |
           tar -czf v8-${V8_VERSION}-src.tar.gz v8/src
@@ -72,7 +71,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-src.tar.gz
-          name: v8-${{ env.V8_VERSION }}-src_${{ env.NOW }}.tar.gz
+          name: v8-${{ env.V8_VERSION }}-src-${{ github.sha }}.tar.gz
 
       # - name: Restore CCache
       #   uses: actions/cache@v4
@@ -127,4 +126,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-lib_${{ matrix.platform }}.tar.gz
-          name: v8-${{ env.V8_VERSION }}-lib_${{ matrix.platform }}_${{ env.NOW }}.tar.gz
+          name: v8-${{ env.V8_VERSION }}-lib_${{ matrix.platform }}-${{ github.sha }}.tar.gz
