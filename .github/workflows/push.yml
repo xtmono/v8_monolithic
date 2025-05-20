@@ -22,10 +22,11 @@ jobs:
     steps:
       - name: Platform env
         run: |
-          echo "OS=$(echo ${{ matrix.platform }} | cut -d'-' -f1)" >> "$GITHUB_ENV"
-          echo "ARCH=$(echo ${{ matrix.platform }} | cut -d'-' -f2)" >> "$GITHUB_ENV"
-          echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | cut -d'-' -f3)" >> "$GITHUB_ENV"
-          echo 'IS_DEBUG=$([ "$BUILD_TYPE" = "debug" ] && echo true || echo false)' >> "$GITHUB_ENV"
+          echo "NOW=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+          echo "OS=$(echo ${{ matrix.platform }} | cut -d'-' -f1)" >> $GITHUB_ENV
+          echo "ARCH=$(echo ${{ matrix.platform }} | cut -d'-' -f2)" >> $GITHUB_ENV
+          echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | cut -d'-' -f3)" >> $GITHUB_ENV
+          echo 'IS_DEBUG=$([ "$BUILD_TYPE" = "debug" ] && echo true || echo false)' >> $GITHUB_ENV
       - name: Install preliminary tools
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -42,7 +43,7 @@ jobs:
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
           export PATH=${GITHUB_WORKSPACE}/depot_tools:${PATH}
           gclient
-          echo "PATH=${GITHUB_WORKSPACE}/depot_tools:${PATH}" >> "$GITHUB_ENV"
+          echo "PATH=${GITHUB_WORKSPACE}/depot_tools:${PATH}" >> $GITHUB_ENV
       - name: Fetch v8 repository
         run: |
           fetch v8
@@ -63,7 +64,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-include.tar.gz
-          name: v8-${{ env.V8_VERSION }}-include.tar.gz
+          name: v8-${{ env.V8_VERSION }}-include_${{ env.NOW }}.tar.gz
       - name: Compress sources
         run: |
           tar -czf v8-${V8_VERSION}-src.tar.gz v8/src
@@ -71,7 +72,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-src.tar.gz
-          name: v8-${{ env.V8_VERSION }}-src.tar.gz
+          name: v8-${{ env.V8_VERSION }}-src_${{ env.NOW }}.tar.gz
 
       # - name: Restore CCache
       #   uses: actions/cache@v4
@@ -92,8 +93,8 @@ jobs:
       #     ccacheDir="${GITHUB_WORKSPACE}/.ccache"
       #     test -d "$ccacheDir" || mkdir "$ccacheDir"
 
-      #     echo "CCACHE_DIR=$ccacheDir" >> "$GITHUB_ENV"
-      #     echo "CC_WRAPPER=ccache" >> "$GITHUB_ENV"
+      #     echo "CCACHE_DIR=$ccacheDir" >> $GITHUB_ENV
+      #     echo "CC_WRAPPER=ccache" >> $GITHUB_ENV
       # - name: Restore V8 Cache
       #   uses: actions/cache@v4
       #   with:
@@ -126,4 +127,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-lib_${{ matrix.platform }}.tar.gz
-          name: v8-${{ env.V8_VERSION }}-lib_${{ matrix.platform }}.tar.gz
+          name: v8-${{ env.V8_VERSION }}-lib_${{ matrix.platform }}_${{ env.NOW }}.tar.gz
