@@ -32,10 +32,8 @@ jobs:
         run: |
           echo -e "Package: snapd\nPin: release a=*\nPin-Priority: -10\n" >> /etc/apt/preferences.d/nosnap.pref
           echo -e "Package: snapcraft\nPin: release a=*\nPin-Priority: -10\n" >> /etc/apt/preferences.d/nosnap.pref
-          # echo "tzdata tzdata/Areas select Etc" | debconf-set-selections
-          # echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections
           apt-get update && apt-get -y upgrade
-          apt-get install -y git python3 python2 build-essential ninja-build curl lsb-release sudo dialog apt-utils tzdata
+          apt-get install -y git python3 python2 build-essential ninja-build curl lsb-release sudo apt-utils tzdata
           update-alternatives --install /usr/bin/python python /usr/bin/python2 60
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -57,7 +55,7 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          v8/build/install-build-deps.sh
+          v8/build/install-build-deps.sh --no-prompt --no-chromeos-fonts --no-nacl
       - name: Compress headers
         run: |
           tar -czf v8-${V8_VERSION}-include.tar.gz v8/include
