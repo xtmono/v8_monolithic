@@ -120,7 +120,7 @@ jobs:
           gn args --list out.gn/${ARCH}.${BUILD_TYPE}
       - name: Compress library
         run: |
-          tar -cf v8-${V8_VERSION}-lib_${{ matrix.platform }}.tar.gz \
+          tar -czf v8-${V8_VERSION}-lib_${{ matrix.platform }}.tar.gz \
           --transform="s|^v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/|v8/lib/|" \
           v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/*.a
       - name: Upload library
