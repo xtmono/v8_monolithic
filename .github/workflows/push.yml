@@ -22,9 +22,10 @@ jobs:
     steps:
       - name: Platform env
         run: |
-          echo "OS=$(echo ${{ matrix.platform }} | cut -d'-' -f1)" >> $GITHUB_ENV
-          echo "ARCH=$(echo ${{ matrix.platform }} | cut -d'-' -f2)" >> $GITHUB_ENV
-          echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | cut -d'-' -f3)" >> $GITHUB_ENV
+          echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+          echo "OS=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $1}')" >> $GITHUB_ENV
+          echo "ARCH=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $2}')" >> $GITHUB_ENV
+          echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $3}')" >> $GITHUB_ENV
           echo "IS_DEBUG=$([ "$BUILD_TYPE" = "debug" ] && echo true || echo false)" >> $GITHUB_ENV
       - name: Install preliminary tools
         env:
@@ -56,22 +57,6 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           v8/build/install-build-deps.sh --no-prompt --no-chromeos-fonts --no-nacl
-      - name: Compress headers
-        run: |
-          tar -czf v8-${V8_VERSION}-include.tar.gz v8/include
-      - name: Upload headers
-        uses: actions/upload-artifact@v4
-        with:
-          path: v8-${{ env.V8_VERSION }}-include.tar.gz
-          name: v8-${{ env.V8_VERSION }}-include-${{ github.sha }}.tar.gz
-      - name: Compress sources
-        run: |
-          tar -czf v8-${V8_VERSION}-src.tar.gz v8/src
-      - name: Upload sources
-        uses: actions/upload-artifact@v4
-        with:
-          path: v8-${{ env.V8_VERSION }}-src.tar.gz
-          name: v8-${{ env.V8_VERSION }}-src-${{ github.sha }}.tar.gz
 
       # - name: Restore CCache
       #   uses: actions/cache@v4
@@ -119,11 +104,14 @@ jobs:
           gn args --list out.gn/${ARCH}.${BUILD_TYPE}
       - name: Compress library
         run: |
-          tar -czf v8-${V8_VERSION}-lib_${{ matrix.platform }}.tar.gz \
-          --transform="s|^v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/|v8/lib/|" \
-          v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/*.a
+          tar -cf v8.tar --transform="s|^v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/|v8/lib/|" \
+            v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/*.a
+          tar -rf v8.tar v8/include
+          tar -rf v8.tar v8/src
+          gzip v8.tar
       - name: Upload library
         uses: actions/upload-artifact@v4
         with:
-          path: v8-${{ env.V8_VERSION }}-lib_${{ matrix.platform }}.tar.gz
-          name: v8-${{ env.V8_VERSION }}-lib_${{ matrix.platform }}-${{ github.sha }}.tar.gz
+          path: v8.tar.gz
+          # name: v8-${{ env.V8_VERSION }}-${{ matrix.platform }}-${{ env.SHORT_SHA }}.tar.gz
+          name: v8-${{ env.V8_VERSION }}-${{ matrix.platform }}.tar.gz
