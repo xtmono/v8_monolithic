@@ -20,6 +20,9 @@ jobs:
       matrix:
         platform: [linux-x64-debug, linux-x64-release]
     steps:
+      - name: System info
+        run: |
+          lscpu; cat /proc/meminfo; df -Th
       - name: Platform env
         run: |
           echo "OS=$(echo ${{ matrix.platform }} | cut -d'-' -f1)" >> "$GITHUB_ENV"
