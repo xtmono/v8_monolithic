@@ -20,9 +20,6 @@ jobs:
       matrix:
         platform: [linux-x64-debug, linux-x64-release]
     steps:
-      - name: System info
-        run: |
-          lscpu; cat /proc/meminfo; df -Th
       - name: Platform env
         run: |
           echo "OS=$(echo ${{ matrix.platform }} | cut -d'-' -f1)" >> "$GITHUB_ENV"
@@ -35,6 +32,8 @@ jobs:
         run: |
           echo "Package: snapd\nPin: release a=*\nPin-Priority: -10" > /etc/apt/preferences.d/nosnap.pref
           echo "Package: snapcraft\nPin: release a=*\nPin-Priority: -10" >> /etc/apt/preferences.d/nosnap.pref
+          ls -la /etc/apt/preferences.d/
+          cat /etc/apt/preferences.d/*
           # echo "tzdata tzdata/Areas select Etc" | debconf-set-selections
           # echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections
           apt-get update && apt-get -y upgrade
@@ -60,7 +59,7 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          ./v8/build/install-build-deps.sh
+          v8/build/install-build-deps.sh
       - name: Compress headers
         run: |
           tar -czf v8-${V8_VERSION}-include.tar.gz v8/include
