@@ -22,7 +22,6 @@ jobs:
     steps:
       - name: Platform env
         run: |
-          echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
           echo "OS=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $1}')" >> $GITHUB_ENV
           echo "ARCH=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $2}')" >> $GITHUB_ENV
           echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $3}')" >> $GITHUB_ENV
@@ -113,5 +112,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: v8.tar.gz
-          # name: v8-${{ env.V8_VERSION }}-${{ matrix.platform }}-${{ env.SHORT_SHA }}.tar.gz
           name: v8-${{ env.V8_VERSION }}-${{ matrix.platform }}.tar.gz
