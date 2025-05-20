@@ -113,3 +113,11 @@ jobs:
         with:
           path: v8.tar.gz
           name: v8-${{ env.V8_VERSION }}-${{ matrix.platform }}.tar.gz
+      - name: Compress linux sysroot
+        run: |
+          tar -czf sysroot.tar.gz v8/build/linux/debian_*64-sysroot/*
+      - name: Upload linux sysroot
+        uses: actions/upload-artifact@v4
+        with:
+          path: sysroot.tar.gz
+          name: v8_sysroot-${{ env.V8_VERSION }}-${{ matrix.platform }}.tar.gz
