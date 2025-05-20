@@ -2,7 +2,7 @@ name: build when push
 on: [push]
 
 env:
-  V8_VERSION: "8.4.380"
+  V8_VERSION: 8.4.380
 
 defaults:
   run:
@@ -12,84 +12,76 @@ jobs:
   build-linux-x64:
 #    if: ${{ false }}  # disable
     name: linux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:20.04
     strategy:
       fail-fast: false
       matrix:
-        platform: [linux.x64.debug, linux.x64.release]
+        platform: [linux-x64-debug, linux-x64-release]
     steps:
       - name: Platform env
         run: |
-          echo "OS=$(echo ${{ matrix.platform }} | cut -d'.' -f1)" >> "$GITHUB_ENV"
-          echo "ARCH=$(echo ${{ matrix.platform }} | cut -d'.' -f2)" >> "$GITHUB_ENV"
-          echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | cut -d'.' -f3)" >> "$GITHUB_ENV"
-          echo "IS_DEBUG=$([ "$BUILD_TYPE" = "debug" ] && echo true || echo false)" >> "$GITHUB_ENV"
-      - name: Install dependencies for container
+          echo "OS=$(echo ${{ matrix.platform }} | cut -d'-' -f1)" >> "$GITHUB_ENV"
+          echo "ARCH=$(echo ${{ matrix.platform }} | cut -d'-' -f2)" >> "$GITHUB_ENV"
+          echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | cut -d'-' -f3)" >> "$GITHUB_ENV"
+          echo 'IS_DEBUG=$([ "$BUILD_TYPE" = "debug" ] && echo true || echo false)' >> "$GITHUB_ENV"
+      - name: Install preliminary tools
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          tee /etc/apt/preferences.d/nosnap.pref > /dev/null <<EOF
-          Package: snapd
-          Pin: release a=*
-          Pin-Priority: -10
-
-          Package: snapcraft
-          Pin: release a=*
-          Pin-Priority: -10
-          EOF
-          echo "tzdata tzdata/Areas select Etc" | debconf-set-selections
-          echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections
+          echo "Package: snapd\nPin: release a=*\nPin-Priority: -10" >> /etc/apt/preferences.d/nosnap.pref
+          echo "Package: snapcraft\nPin: release a=*\nPin-Priority: -10" >> /etc/apt/preferences.d/nosnap.pref
+          # echo "tzdata tzdata/Areas select Etc" | debconf-set-selections
+          # echo "tzdata tzdata/Zones/Etc select UTC" | debconf-set-selections
           apt-get update && apt-get -y upgrade
           apt-get install -y git python3 python2 build-essential ninja-build curl lsb-release sudo dialog apt-utils tzdata
-          # ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
-          # echo "Etc/UTC" | tee /etc/timezone
-          # dpkg-reconfigure --frontend noninteractive tzdata
-          # apt-get install -y tzdata
           update-alternatives --install /usr/bin/python python /usr/bin/python2 60
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Setup depot_tools
+      - name: Install depot_tools
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-          echo "PATH=${GITHUB_WORKSPACE}/depot_tools:${PATH}" >> "$GITHUB_ENV"
-      - name: Fetch tagged version
-        run: |
+          export PATH=${GITHUB_WORKSPACE}/depot_tools:${PATH}
           gclient
+          echo "PATH=${GITHUB_WORKSPACE}/depot_tools:${PATH}" >> "$GITHUB_ENV"
+      - name: Fetch v8 repository
+        run: |
           fetch v8
-          cd ${GITHUB_WORKSPACE}/v8
+      - name: Sync v8 repository to target version
+        run: |
+          cd v8
           git checkout tags/${V8_VERSION}
           gclient sync
       - name: Install build dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          ${GITHUB_WORKSPACE}/v8/build/install-build-deps.sh
+          ./v8/build/install-build-deps.sh
       - name: Compress headers
         run: |
-          tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-include.tar.gz v8/include
+          tar -czf v8-${V8_VERSION}-include.tar.gz v8/include
       - name: Upload headers
         uses: actions/upload-artifact@v4
         with:
-          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-include.tar.gz
-          name: v8-${V8_VERSION}-include.tar.gz
-      - name: Compress source
+          path: v8-${{ env.V8_VERSION }}-include.tar.gz
+          name: v8-${{ env.V8_VERSION }}-include.tar.gz
+      - name: Compress sources
         run: |
-          tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-src.tar.gz v8/src
-      - name: Upload source
+          tar -czf v8-${V8_VERSION}-src.tar.gz v8/src
+      - name: Upload sources
         uses: actions/upload-artifact@v4
         with:
-          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-src.tar.gz
-          name: v8-${V8_VERSION}-src.tar.gz
+          path: v8-${{ env.V8_VERSION }}-src.tar.gz
+          name: v8-${{ env.V8_VERSION }}-src.tar.gz
 
       # - name: Restore CCache
       #   uses: actions/cache@v4
       #   with:
       #     path: .ccache
-      #     key: ${{ runner.os }}-${{ matrix.platform }}:libv8:ccache:${{ github.run_number }}
+      #     key: ${{ matrix.platform }}:libv8:ccache:${{ github.run_number }}
       #     restore-keys: |
-      #       ${{ runner.os }}-${{ matrix.platform }}:libv8:ccache:
+      #       ${{ matrix.platform }}:libv8:ccache:
       # - name: Setup Build Tools
       #   shell: bash
       #   run: |
@@ -112,30 +104,28 @@ jobs:
       #       .gclient_entries
       #       .gclient_previous_sync_commits
       #       .cipd
-      #     key: ${{ runner.os }}-${{ matrix.platform }}:libv8:v8:${{ hashFiles('**/VERSION') }}
+      #     key: ${{ matrix.platform }}:libv8:v8:${{ hashFiles('**/VERSION') }}
       #     restore-keys: |
-      #       ${{ runner.os }}-${{ matrix.platform }}:libv8:v8:
+      #       ${{ matrix.platform }}:libv8:v8:
 
-      - name: Copy build args
+      - name: Set build args
         run: |
-          mkdir -p ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}
-          envsubst < ${GITHUB_WORKSPACE}/args.${OS}.gn > ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
-      - name: Verify build args
-        run: |
-          cat ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
+          mkdir -p v8/out.gn/${ARCH}.${BUILD_TYPE}
+          envsubst < args.${OS}.gn > v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
+          cat v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
       - name: Build library
         run: |
-          cd ${GITHUB_WORKSPACE}/v8
+          cd v8
           gn gen out.gn/${ARCH}.${BUILD_TYPE}
           ninja -j $(($(nproc)+2)) v8_monolith -C out.gn/${ARCH}.${BUILD_TYPE}/
           gn args --list out.gn/${ARCH}.${BUILD_TYPE}
       - name: Compress library
         run: |
-          tar -czf ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_${OS}-${ARCH}-${BUILD_TYPE}.tar.gz \
-          --transform="s|.*/v8/out\.gn/${ARCH}\.${BUILD_TYPE}/obj|v8|" \
-          ${GITHUB_WORKSPACE}/v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/libv8_monolith.a
+          tar -cf v8-${V8_VERSION}-lib_${{ matrix.platform }}.tar.gz \
+          --transform="s|^v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/|v8/lib/|" \
+          v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/*.a
       - name: Upload library
         uses: actions/upload-artifact@v4
         with:
-          path: ${GITHUB_WORKSPACE}/v8-${V8_VERSION}-lib_${OS}-${ARCH}-${BUILD_TYPE}.tar.gz
-          name: v8-${V8_VERSION}-lib_${OS}-${ARCH}-${BUILD_TYPE}.tar.gz
+          path: v8-${{ env.V8_VERSION }}-lib_${{ matrix.platform }}.tar.gz
+          name: v8-${{ env.V8_VERSION }}-lib_${{ matrix.platform }}.tar.gz
