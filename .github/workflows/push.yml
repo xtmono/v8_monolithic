@@ -22,7 +22,7 @@ jobs:
     steps:
       - name: Platform env
         run: |
-          echo "NOW=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+          echo "NOW=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
           echo "OS=$(echo ${{ matrix.platform }} | cut -d'-' -f1)" >> $GITHUB_ENV
           echo "ARCH=$(echo ${{ matrix.platform }} | cut -d'-' -f2)" >> $GITHUB_ENV
           echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | cut -d'-' -f3)" >> $GITHUB_ENV
