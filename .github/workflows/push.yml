@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [linux-x64-debug, linux-x64-release]
+        platform: [linux-x64-release, linux-x64-debug]
     steps:
       - name: Platform env
         run: |
@@ -51,6 +51,19 @@ jobs:
           cd v8
           git checkout tags/${V8_VERSION}
           gclient sync
+      - name: Compress headers and sources
+        if: env.BUILD_TYPE == 'release'
+        run: |
+          tar -czf v8-${V8_VERSION}-include.tar.gz v8/include
+          tar -czf v8-${V8_VERSION}-src.tar.gz v8/src
+      - name: Upload headers and sources
+        if: env.BUILD_TYPE == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          path: |
+            v8-${{ env.V8_VERSION }}-include.tar.gz
+            v8-${{ env.V8_VERSION }}-src.tar.gz
+          name: Headers and Sources
       - name: Install build dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -103,21 +116,20 @@ jobs:
           gn args --list out.gn/${ARCH}.${BUILD_TYPE}
       - name: Compress library
         run: |
-          tar -cf v8.tar --transform="s|^v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/|v8/lib/|" \
+          tar -czf v8.tar.gz --transform="s|^v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/|v8/lib/|" \
             v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/*.a
-          tar -rf v8.tar v8/include
-          tar -rf v8.tar v8/src
-          gzip v8.tar
       - name: Upload library
         uses: actions/upload-artifact@v4
         with:
           path: v8.tar.gz
           name: v8-${{ env.V8_VERSION }}-${{ matrix.platform }}.tar.gz
       - name: Compress linux sysroot
+        if: env.BUILD_TYPE == 'release'
         run: |
           tar -czf sysroot.tar.gz v8/build/linux/debian_*64-sysroot/*
       - name: Upload linux sysroot
+        if: env.BUILD_TYPE == 'release'
         uses: actions/upload-artifact@v4
         with:
           path: sysroot.tar.gz
-          name: v8_sysroot-${{ env.V8_VERSION }}-${{ matrix.platform }}.tar.gz
+          name: v8_sysroot-${{ env.V8_VERSION }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz
