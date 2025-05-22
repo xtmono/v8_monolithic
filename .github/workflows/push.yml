@@ -86,7 +86,12 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           v8/build/install-build-deps.sh --no-prompt --no-chromeos-fonts --no-nacl
-
+      - name: Install build dependencies
+        run: |
+          gcc --version
+          g++ --version
+          ldd --version
+  
       # - name: Restore CCache
       #   uses: actions/cache@v4
       #   with:
@@ -132,6 +137,7 @@ jobs:
           ninja -j $(($(nproc)+2)) v8_monolith -C out.gn/${ARCH}.${BUILD_TYPE}/
       - name: Show build args
         run: |
+          cd v8
           gn args --list --short out.gn/${ARCH}.${BUILD_TYPE} > v8/out.gn/${ARCH}.${BUILD_TYPE}/gn_args_list.txt
       - name: Compress library
         run: |
