@@ -18,14 +18,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [linux-x64-release, linux-x64-debug]
+        platform: [
+          linux-x64-release,
+          linux-x64-debug,
+          linux-x64-release-static,
+          linux-x64-debug-static
+        ]
     steps:
       - name: Platform env
         run: |
           echo "OS=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $1}')" >> $GITHUB_ENV
           echo "ARCH=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $2}')" >> $GITHUB_ENV
           echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $3}')" >> $GITHUB_ENV
-          echo "IS_DEBUG=$([ "$BUILD_TYPE" = "debug" ] && echo true || echo false)" >> $GITHUB_ENV
+          echo "LIB_TYPE=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $4}')" >> $GITHUB_ENV
       - name: Install preliminary tools
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -52,31 +57,31 @@ jobs:
           git checkout tags/${V8_VERSION}
           gclient sync
       - name: Compress headers
-        if: env.BUILD_TYPE == 'release'
+        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE != 'static'
         run: |
           tar -czf v8-${V8_VERSION}-include.tar.gz v8/include
       - name: Upload headers
-        if: env.BUILD_TYPE == 'release'
+        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE != 'static'
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-include.tar.gz
           name: v8-${{ env.V8_VERSION }}-include.tar.gz
       - name: Compress sources
-        if: env.BUILD_TYPE == 'release'
+        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE != 'static'
         run: |
           tar -czf v8-${V8_VERSION}-src.tar.gz v8/src
       - name: Upload sources
-        if: env.BUILD_TYPE == 'release'
+        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE != 'static'
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-src.tar.gz
           name: v8-${{ env.V8_VERSION }}-src.tar.gz
       - name: Compress linux sysroot
-        if: env.BUILD_TYPE == 'release'
+        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE != 'static'
         run: |
           tar -czf v8-${V8_VERSION}-sysroot-${OS}-${ARCH}.tar.gz v8/build/linux/*amd64-sysroot/*
       - name: Upload linux sysroot
-        if: env.BUILD_TYPE == 'release'
+        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE != 'static'
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-sysroot-${{ env.OS }}-${{ env.ARCH }}.tar.gz
@@ -86,12 +91,11 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           v8/build/install-build-deps.sh --no-prompt --no-chromeos-fonts --no-nacl
-      - name: Install build dependencies
+      - name: Show build tools version
         run: |
           gcc --version
-          g++ --version
           ldd --version
-  
+
       # - name: Restore CCache
       #   uses: actions/cache@v4
       #   with:
@@ -128,6 +132,8 @@ jobs:
       - name: Set build args
         run: |
           mkdir -p v8/out.gn/${ARCH}.${BUILD_TYPE}
+          export IS_DEBUG=$([ "$BUILD_TYPE" = "debug" ] && echo true || echo false)
+          export DYNAMIC_LIB=$([ "$LIB_TYPE" = "static" ] && echo false || echo true)
           envsubst < args.${OS}.gn > v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
           cat v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
       - name: Build library
@@ -138,7 +144,7 @@ jobs:
       - name: Show build args
         run: |
           cd v8
-          gn args --list --short out.gn/${ARCH}.${BUILD_TYPE} > v8/out.gn/${ARCH}.${BUILD_TYPE}/gn_args_list.txt
+          gn args --list --short out.gn/${ARCH}.${BUILD_TYPE} > out.gn/${ARCH}.${BUILD_TYPE}/gn_args_list.txt
       - name: Compress library
         run: |
           tar -cf v8-${V8_VERSION}-lib-${{ matrix.platform }}.tar \
