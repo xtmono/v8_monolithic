@@ -124,15 +124,15 @@ jobs:
         run: |
           mkdir -p v8/out.gn/${ARCH}.${BUILD_TYPE}
           envsubst < args.${OS}.gn > v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
+      - name: Show build args
+        run: |
+            cat v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
+            gn args --list v8/out.gn/${ARCH}.${BUILD_TYPE}
       - name: Build library
         run: |
           cd v8
           gn gen out.gn/${ARCH}.${BUILD_TYPE}
           ninja -j $(($(nproc)+2)) v8_monolith -C out.gn/${ARCH}.${BUILD_TYPE}/
-      - name: Show build args
-        run: |
-          cat v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
-          gn args --list out.gn/${ARCH}.${BUILD_TYPE}
       - name: Compress library
         run: |
           tar -czf v8-${V8_VERSION}-lib-${{ matrix.platform }}.tar.gz \
