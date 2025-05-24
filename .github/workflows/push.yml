@@ -19,21 +19,22 @@ jobs:
       fail-fast: false
       matrix:
         platform: [
-          linux-x64-release,
-          linux-x64-debug,
-          linux-x64-release-dynlib,
-          linux-x64-debug-dynlib
+          linux-x64-static-release,
+          linux-x64-static-debug,
+          linux-x64-shared-release,
+          linux-x64-shared-debug
         ]
+    env:
+      PLATFORM: ${{ matrix.platform }}
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Platform env
         run: |
-          echo "OS=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $1}')" >> $GITHUB_ENV
-          echo "ARCH=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $2}')" >> $GITHUB_ENV
-          echo "BUILD_TYPE=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $3}')" >> $GITHUB_ENV
-          echo "LIB_TYPE=$(echo ${{ matrix.platform }} | awk -F'[-_.]' '{print $4}')" >> $GITHUB_ENV
+          echo "OS=$(echo ${PLATFORM} | awk -F'[-_.]' '{print $1}')" >> $GITHUB_ENV
+          echo "ARCH=$(echo ${PLATFORM} | awk -F'[-_.]' '{print $2}')" >> $GITHUB_ENV
+          echo "LIB_TYPE=$(echo ${PLATFORM} | awk -F'[-_.]' '{print $3}')" >> $GITHUB_ENV
+          echo "BUILD_TYPE=$(echo ${PLATFORM} | awk -F'[-_.]' '{print $4}')" >> $GITHUB_ENV
       - name: Install preliminary tools
-        env:
-          DEBIAN_FRONTEND: noninteractive
         run: |
           echo -e "Package: snapd\nPin: release a=*\nPin-Priority: -10\n" >> /etc/apt/preferences.d/nosnap.pref
           echo -e "Package: snapcraft\nPin: release a=*\nPin-Priority: -10\n" >> /etc/apt/preferences.d/nosnap.pref
@@ -45,8 +46,7 @@ jobs:
       - name: Install depot_tools
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-          export PATH=${GITHUB_WORKSPACE}/depot_tools:${PATH}
-          gclient
+          PATH=${GITHUB_WORKSPACE}/depot_tools:${PATH} gclient
           echo "PATH=${GITHUB_WORKSPACE}/depot_tools:${PATH}" >> $GITHUB_ENV
       - name: Fetch v8 repository
         run: |
@@ -56,39 +56,31 @@ jobs:
           cd v8
           git checkout tags/${V8_VERSION}
           gclient sync
-      - name: Compress headers
-        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE == ''
+      - name: Compress headers, sources, sysroot
+        if: env.LIB_TYPE == 'static' && env.BUILD_TYPE == 'release'
         run: |
           tar -czf v8-${V8_VERSION}-include.tar.gz v8/include
+          tar -czf v8-${V8_VERSION}-src.tar.gz v8/src
+          tar -czf v8-${V8_VERSION}-sysroot-${OS}-${ARCH}.tar.gz v8/build/linux/*amd64-sysroot/*
       - name: Upload headers
-        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE == ''
+        if: env.LIB_TYPE == 'static' && env.BUILD_TYPE == 'release'
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-include.tar.gz
           name: v8-${{ env.V8_VERSION }}-include.tar.gz
-      - name: Compress sources
-        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE == ''
-        run: |
-          tar -czf v8-${V8_VERSION}-src.tar.gz v8/src
       - name: Upload sources
-        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE == ''
+        if: env.LIB_TYPE == 'static' && env.BUILD_TYPE == 'release'
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-src.tar.gz
           name: v8-${{ env.V8_VERSION }}-src.tar.gz
-      - name: Compress linux sysroot
-        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE == ''
-        run: |
-          tar -czf v8-${V8_VERSION}-sysroot-${OS}-${ARCH}.tar.gz v8/build/linux/*amd64-sysroot/*
       - name: Upload linux sysroot
-        if: env.BUILD_TYPE == 'release' && env.LIB_TYPE == ''
+        if: env.LIB_TYPE == 'static' && env.BUILD_TYPE == 'release'
         uses: actions/upload-artifact@v4
         with:
           path: v8-${{ env.V8_VERSION }}-sysroot-${{ env.OS }}-${{ env.ARCH }}.tar.gz
           name: v8-${{ env.V8_VERSION }}-sysroot-${{ env.OS }}-${{ env.ARCH }}.tar.gz
       - name: Install build dependencies
-        env:
-          DEBIAN_FRONTEND: noninteractive
         run: |
           v8/build/install-build-deps.sh --no-prompt --no-chromeos-fonts --no-nacl
       - name: Show build tools version
@@ -131,28 +123,33 @@ jobs:
 
       - name: Set build args
         run: |
-          mkdir -p v8/out.gn/${ARCH}.${BUILD_TYPE}
+          cd v8
+          mkdir -p out.gn/${PLATFORM}
           export IS_DEBUG=$([ "$BUILD_TYPE" = "debug" ] && echo true || echo false)
-          export DYNAMIC_LIB=$([ "$LIB_TYPE" = "dynlib" ] && echo true || echo false)
-          envsubst < args.${OS}.gn > v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
-          cat v8/out.gn/${ARCH}.${BUILD_TYPE}/args.gn
+          [ "$LIB_TYPE" = "shared" ] && \
+            export IS_COMPONENT_BUILD=true V8_MONOLITHIC=false || \
+            export IS_COMPONENT_BUILD=false V8_MONOLITHIC=true
+          envsubst < ${GITHUB_WORKSPACE}/args.${OS}.gn > out.gn/${PLATFORM}/args.gn
+          cat out.gn/${PLATFORM}/args.gn
       - name: Build library
         run: |
           cd v8
-          gn gen out.gn/${ARCH}.${BUILD_TYPE}
-          ninja -j $(($(nproc)+2)) v8_monolith -C out.gn/${ARCH}.${BUILD_TYPE}/
+          gn gen out.gn/${PLATFORM}
+          export BUILD_TARGET=$([ "$LIB_TYPE" = "shared" ] && \
+            echo v8 v8_base v8_libbase v8_libplatform icui18n icuuc || \
+            echo v8_monolith)
+          ninja -j $(($(nproc)+2)) ${BUILD_TARGET} -C out.gn/${PLATFORM}
       - name: Show build args
         run: |
           cd v8
-          gn args --list --short out.gn/${ARCH}.${BUILD_TYPE} > out.gn/${ARCH}.${BUILD_TYPE}/gn_args_list.txt
+          gn args --list --short out.gn/${PLATFORM} > out.gn/${PLATFORM}/gn_args_list.txt
       - name: Compress library
         run: |
-          tar -cf v8-${V8_VERSION}-lib-${{ matrix.platform }}.tar \
-            --transform="s|^v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/|v8/lib/|" \
-            v8/out.gn/${ARCH}.${BUILD_TYPE}/obj/*.a
-          tar -rf v8-${V8_VERSION}-lib-${{ matrix.platform }}.tar \
-            v8/out.gn/${ARCH}.${BUILD_TYPE}/gn_args_list.txt
-          gzip v8-${V8_VERSION}-lib-${{ matrix.platform }}.tar
+          tar -cf v8-${V8_VERSION}-lib-${PLATFORM}.tar \
+            --transform="s|^v8/out.gn/${PLATFORM}/|v8/|" v8/out.gn/${PLATFORM}/gn_args_list.txt
+          find v8/out.gn -name "*.a" -o -name "*.so" | tar -rf v8-${V8_VERSION}-lib-${PLATFORM}.tar \
+            --transform="s|^v8/out.gn.*/|v8/lib/|" -T -
+          gzip v8-${V8_VERSION}-lib-${PLATFORM}.tar
       - name: Upload library
         uses: actions/upload-artifact@v4
         with:
